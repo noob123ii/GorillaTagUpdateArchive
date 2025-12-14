@@ -1,11 +1,8 @@
 # Gorilla Tag Update Archive
 
-A beautiful web archive for all Gorilla Tag updates from 2021 to 2025.
-
 ## Features
 
 - 📅 Organized by year (2021-2025)
-- 🎨 Modern, responsive UI
 - 📥 Automatic download handling
 - 🔗 Direct links for Google Drive and Discord CDN downloads
 - 🎮 SteamCMD script generation for Steam depot downloads
