@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gorilla Tag Update Archive</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-text">
+                    <h1>🦍 GORILLA TAG UPDATE ARCHIVE</h1>
+                    <p class="subtitle">Complete Archive of All Updates</p>
+                </div>
+                <div class="profile-section">
+                    <button class="profile-btn" id="profileBtn" onclick="toggleProfileMenu()">
+                        {% if logged_in and avatar_url %}
+                        <img src="{{ avatar_url }}" alt="Profile" class="profile-avatar">
+                        {% else %}
+                        <span class="profile-icon">👤</span>
+                        {% endif %}
+                        <span id="profileText">{% if logged_in %}{{ profile_name|default(username) }}{% else %}Profile{% endif %}</span>
+                    </button>
+                    <div class="profile-menu" id="profileMenu" style="display: none;">
+                        {% if logged_in %}
+                        <div class="profile-info">
+                            {% if avatar_url %}
+                            <img src="{{ avatar_url }}" alt="Profile" class="profile-avatar-large">
+                            {% endif %}
+                            <p>Logged in as: <strong>{{ profile_name|default(username) }}</strong></p>
+                            {% if username != profile_name|default(username) %}
+                            <p class="profile-username">Username: {{ username }}</p>
+                            {% endif %}
+                        </div>
+                        <button class="profile-menu-btn" onclick="logout()">Logout</button>
+                        {% else %}
+                        <button class="profile-menu-btn" onclick="showLoginModal()">Login to Steam</button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Login Modal -->
+        <div id="loginModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="close" onclick="closeLoginModal()">&times;</span>
+                <h2>Steam Login</h2>
+                <p class="modal-subtitle">Enter your Steam credentials to save them for automatic downloads</p>
+                <form id="loginForm" onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label for="steamUsername">Steam Username:</label>
+                        <input type="text" id="steamUsername" name="username" required autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <label for="steamPassword">Steam Password:</label>
+                        <input type="password" id="steamPassword" name="password" required autocomplete="current-password">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="login-submit-btn">Login</button>
+                        <button type="button" class="login-cancel-btn" onclick="closeLoginModal()">Cancel</button>
+                    </div>
+                    <div id="loginError" class="error-message" style="display: none;"></div>
+                </form>
+            </div>
+        </div>
+
+        <div class="years-container">
+            {% for year in ['2021', '2022', '2023', '2024', '2025'] %}
+            {% if year in updates %}
+            <div class="year-section">
+                <button class="year-toggle" onclick="toggleYear('{{ year }}')">
+                    <span class="year-title">{{ year }}</span>
+                    <span class="toggle-icon" id="icon-{{ year }}">▼</span>
+                </button>
+                
+                <div class="year-content" id="content-{{ year }}" style="display: none;">
+                    <table class="updates-table">
+                        <thead>
+                            <tr>
+                                <th>Update</th>
+                                <th>Size</th>
+                                <th>Depot</th>
+                                <th>Download</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for update in updates[year] %}
+                            <tr>
+                                <td class="update-name">{{ update.name }}</td>
+                                <td class="update-size" id="size-{{ year }}-{{ loop.index0 }}">
+                                    {% if update.type == 'steam' %}
+                                        <span class="loading-size">Calculating...</span>
+                                    {% else %}
+                                        Direct
+                                    {% endif %}
+                                </td>
+                                <td class="update-depot">
+                                    {% if update.type == 'steam' %}
+                                        {{ update.depot }}
+                                    {% elif update.type == 'drive' %}
+                                        Google Drive
+                                    {% else %}
+                                        Direct Link
+                                    {% endif %}
+                                </td>
+                                <td class="update-download">
+                                    <button class="download-btn" onclick="downloadUpdate('{{ year }}', {{ loop.index0 }}, '{{ update.type }}')">
+                                        {% if update.type == 'steam' %}
+                                            📥 Download Script
+                                        {% else %}
+                                            🔗 Open Link
+                                        {% endif %}
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <div id="loading" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner"></div>
+        <p>Processing download...</p>
+    </div>
+
+    <script>
+        function toggleYear(year) {
+            const content = document.getElementById('content-' + year);
+            const icon = document.getElementById('icon-' + year);
+            
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                icon.textContent = '▲';
+            } else {
+                content.style.display = 'none';
+                icon.textContent = '▼';
+            }
+        }
+
+        function downloadUpdate(year, index, type) {
+            const loading = document.getElementById('loading');
+            loading.style.display = 'flex';
+
+            if (type === 'steam') {
+                // Download SteamCMD script
+                window.location.href = `/download/${year}/${index}`;
+                setTimeout(() => {
+                    loading.style.display = 'none';
+                }, 1000);
+            } else if (type === 'drive' || type === 'direct') {
+                // Fetch redirect URL and open in new tab
+                fetch(`/download/${year}/${index}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.redirect) {
+                            window.open(data.redirect, '_blank');
+                        }
+                        loading.style.display = 'none';
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        loading.style.display = 'none';
+                        alert('Error opening download link');
+                    });
+            }
+        }
+
+        // Open first year by default
+        window.addEventListener('DOMContentLoaded', function() {
+            toggleYear('2021');
+            loadDepotSizes();
+            
+            // Close profile menu when clicking outside
+            document.addEventListener('click', function(event) {
+                const profileBtn = document.getElementById('profileBtn');
+                const profileMenu = document.getElementById('profileMenu');
+                if (profileBtn && profileMenu && !profileBtn.contains(event.target) && !profileMenu.contains(event.target)) {
+                    profileMenu.style.display = 'none';
+                }
+            });
+        });
+
+        function toggleProfileMenu() {
+            const menu = document.getElementById('profileMenu');
+            if (menu.style.display === 'none') {
+                menu.style.display = 'block';
+            } else {
+                menu.style.display = 'none';
+            }
+        }
+
+        function showLoginModal() {
+            document.getElementById('loginModal').style.display = 'flex';
+            document.getElementById('profileMenu').style.display = 'none';
+        }
+
+        function closeLoginModal() {
+            document.getElementById('loginModal').style.display = 'none';
+            document.getElementById('loginForm').reset();
+            document.getElementById('loginError').style.display = 'none';
+        }
+        
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('loginModal');
+            if (event.target === modal) {
+                closeLoginModal();
+            }
+        });
+
+        function handleLogin(event) {
+            event.preventDefault();
+            const username = document.getElementById('steamUsername').value;
+            const password = document.getElementById('steamPassword').value;
+            const errorDiv = document.getElementById('loginError');
+
+            fetch('/api/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username: username, password: password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    closeLoginModal();
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500);
+                } else {
+                    errorDiv.textContent = data.error || 'Login failed';
+                    errorDiv.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                errorDiv.textContent = 'Error connecting to server';
+                errorDiv.style.display = 'block';
+            });
+        }
+
+        function logout() {
+            fetch('/api/logout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                }
+            });
+        }
+
+        // Load depot sizes from API with rate limiting
+        function loadDepotSizes() {
+            const updates = {{ updates | tojson }};
+            const depotRequests = [];
+            
+            for (const [year, yearUpdates] of Object.entries(updates)) {
+                yearUpdates.forEach((update, index) => {
+                    if (update.type === 'steam' && update.depot) {
+                        depotRequests.push({ year, index, depotId: update.depot });
+                    }
+                });
+            }
+            
+            // Process requests in batches to avoid rate limiting
+            const batchSize = 5;
+            let currentBatch = 0;
+            
+            function processBatch() {
+                const batch = depotRequests.slice(currentBatch * batchSize, (currentBatch + 1) * batchSize);
+                
+                batch.forEach(({ year, index, depotId }) => {
+                    const sizeCell = document.getElementById(`size-${year}-${index}`);
+                    if (sizeCell) {
+                        fetch(`/api/depot_size/${depotId}`)
+                            .then(r => r.json())
+                            .then(data => {
+                                if (data.formatted_size && data.formatted_size !== 'N/A' && data.formatted_size !== 'Calculating...') {
+                                    sizeCell.innerHTML = data.formatted_size;
+                                    sizeCell.style.opacity = '0';
+                                    setTimeout(() => {
+                                        sizeCell.style.transition = 'opacity 0.5s ease';
+                                        sizeCell.style.opacity = '1';
+                                    }, 10);
+                                } else {
+                                    sizeCell.innerHTML = '<span class="loading-size">Calculating...</span>';
+                                }
+                            })
+                            .catch(() => {
+                                sizeCell.innerHTML = '<span class="loading-size">N/A</span>';
+                            });
+                    }
+                });
+                
+                currentBatch++;
+                if (currentBatch * batchSize < depotRequests.length) {
+                    setTimeout(processBatch, 1000);
+                }
+            }
+            
+            if (depotRequests.length > 0) {
+                processBatch();
+            }
+        }
+        
+        // Poll for size updates
+        function pollSizeUpdates() {
+            fetch('/api/update_sizes')
+                .then(r => r.json())
+                .then(sizes => {
+                    const updates = {{ updates | tojson }};
+                    for (const [year, yearUpdates] of Object.entries(updates)) {
+                        yearUpdates.forEach((update, index) => {
+                            if (update.type === 'steam' && update.depot) {
+                                const sizeCell = document.getElementById(`size-${year}-${index}`);
+                                if (sizeCell && sizes[update.depot] && sizes[update.depot] !== 'Calculating...') {
+                                    const currentText = sizeCell.textContent.trim();
+                                    if (currentText === 'Calculating...' || currentText === 'N/A') {
+                                        sizeCell.innerHTML = sizes[update.depot];
+                                        sizeCell.style.opacity = '0';
+                                        setTimeout(() => {
+                                            sizeCell.style.transition = 'opacity 0.5s ease';
+                                            sizeCell.style.opacity = '1';
+                                        }, 10);
+                                    }
+                                }
+                            }
+                        });
+                    }
+                })
+                .catch(() => {});
+        }
+        
+        // Poll every 5 seconds for updates
+        setInterval(pollSizeUpdates, 5000);
+    </script>
+</body>
+</html>

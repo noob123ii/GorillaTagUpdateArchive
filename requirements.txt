@@ -1,0 +1,8 @@
+Flask==3.0.0
+Werkzeug==3.0.1
+requests==2.31.0
+# Cryptography is required for credential encryption
+# If installation fails, try: pip install --upgrade pip setuptools wheel
+# Then: pip install cryptography
+cryptography>=41.0.0
+
