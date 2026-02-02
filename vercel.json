@@ -4,6 +4,10 @@
   "framework": "vite",
   "rewrites": [
     {
+      "source": "/feedback/((?!general).*)",
+      "destination": "/api/feedback/general"
+    },
+    {
       "source": "/((?!api($|/)).*)",
       "destination": "/index.html"
     }
