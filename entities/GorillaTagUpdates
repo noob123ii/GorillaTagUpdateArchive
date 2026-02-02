@@ -1,0 +1,61 @@
+{
+  "name": "GorillaTagUpdate",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name of the update"
+    },
+    "version": {
+      "type": "string",
+      "description": "Version number if known"
+    },
+    "year": {
+      "type": "number",
+      "description": "Year of release (2021-2025)"
+    },
+    "release_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Release date of the update"
+    },
+    "release_type": {
+      "type": "string",
+      "enum": [
+        "stable",
+        "beta",
+        "alpha",
+        "hotfix",
+        "flashback"
+      ],
+      "default": "stable",
+      "description": "Type of release"
+    },
+    "download_type": {
+      "type": "string",
+      "enum": [
+        "google_drive",
+        "direct_link",
+        "steam_depot"
+      ],
+      "description": "Type of download method"
+    },
+    "download_url": {
+      "type": "string",
+      "description": "URL for Google Drive or Direct links"
+    },
+    "manifest_id": {
+      "type": "string",
+      "description": "Steam manifest ID for depot downloads"
+    },
+    "size": {
+      "type": "string",
+      "description": "File size if known"
+    }
+  },
+  "required": [
+    "name",
+    "year",
+    "download_type"
+  ]
+}

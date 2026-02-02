@@ -1,0 +1,8 @@
+{
+  "name": "Base44 APP",
+  "short_name": "Base44",
+  "description": "Base44 Application",
+  "start_url": "/",
+  "display": "standalone",
+  "icons": []
+}
